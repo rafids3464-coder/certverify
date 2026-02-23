@@ -1,0 +1,97 @@
+# ============================================================
+# docker-compose.yml — CertVerify (Full Training + Inference)
+# ============================================================
+
+volumes:
+  mongo_data:
+  model_weights:
+  uploads:
+
+
+networks:
+  cert-net:
+    driver: bridge
+
+services:
+
+  mongodb:
+    image: mongo:7.0
+    container_name: certify-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cert-net
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: certify-ml
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - model_weights:/app/models
+      - ./ml:/app/ml
+    networks:
+      - cert-net
+    environment:
+      - PYTHONPATH=/app/ml
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: certify-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ml:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_weights:/app/models
+      - uploads:/app/uploads
+      - ./ml:/app/ml
+      - ./backend:/app/backend
+    networks:
+      - cert-net
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB_NAME=certdb
+      - PYTHONPATH=/app/backend:/app/ml
+      - JWT_SECRET=certverify-change-this-in-production-2026
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=Admin@1234
+    working_dir: /app/backend
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: certify-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    networks:
+      - cert-net

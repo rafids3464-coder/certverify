@@ -1,0 +1,42 @@
+# ============================================================
+# CertVerify v2 — Backend Requirements (Stable + Full ML Stack)
+# ============================================================
+
+# ── Web Framework ───────────────────────────────────────────
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.9
+
+# ── Authentication ──────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib==1.7.4
+
+# ── Database ────────────────────────────────────────────────
+motor==3.3.2
+pymongo==4.6.1
+
+# ── HTTP Client ─────────────────────────────────────────────
+httpx==0.26.0
+
+# ── Environment ─────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── File Handling ───────────────────────────────────────────
+Pillow==10.2.0
+pdf2image==1.16.3
+aiofiles==23.2.1
+
+# ── Data Validation ─────────────────────────────────────────
+pydantic==2.5.3
+
+# ── Logging ─────────────────────────────────────────────────
+loguru==0.7.2
+
+# ── ML + OCR Dependencies (Required for Prediction) ────────
+torch==2.1.2
+torchvision==0.16.2
+efficientnet_pytorch==0.7.1
+pytesseract==0.3.10
+opencv-python-headless==4.9.0.80
+transformers==4.36.2
+numpy==1.26.3
