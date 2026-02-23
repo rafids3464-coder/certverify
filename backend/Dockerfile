@@ -1,20 +1,14 @@
 # ============================================================
 # CertVerify v2 — FastAPI Backend Dockerfile
-# Python 3.10 + Tesseract + Poppler + CPU Torch
 # ============================================================
 
 FROM python:3.10-slim-bullseye
-
-LABEL maintainer="CertVerify"
-LABEL description="FastAPI backend with ML + OCR support"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# ────────────────────────────────────────────────────────────
-# System Dependencies
-# ────────────────────────────────────────────────────────────
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-eng \
@@ -27,45 +21,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# ────────────────────────────────────────────────────────────
-# Working Directory
-# ────────────────────────────────────────────────────────────
+# Set working directory
 WORKDIR /app
 
-# ────────────────────────────────────────────────────────────
 # Upgrade pip
-# ────────────────────────────────────────────────────────────
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# ────────────────────────────────────────────────────────────
-# Install CPU PyTorch (backend inference only)
-# ────────────────────────────────────────────────────────────
+# Install CPU PyTorch
 RUN pip install --no-cache-dir \
     torch==2.1.2+cpu \
     torchvision==0.16.2+cpu \
     --index-url https://download.pytorch.org/whl/cpu
 
-# ────────────────────────────────────────────────────────────
-# Install Remaining Python Dependencies
-# ────────────────────────────────────────────────────────────
-COPY requirements.txt /tmp/requirements.txt
+# Copy only requirements first
+COPY backend/requirements.txt ./backend/requirements.txt
 
-# Remove torch + torchvision from requirements (already installed)
-RUN grep -v "^torch" /tmp/requirements.txt | \
-    grep -v "^torchvision" > /tmp/requirements_filtered.txt && \
-    pip install --no-cache-dir -r /tmp/requirements_filtered.txt
+# Install Python dependencies
+RUN grep -v "^torch" backend/requirements.txt | \
+    grep -v "^torchvision" > /tmp/requirements.txt && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
-# ────────────────────────────────────────────────────────────
-# Copy Backend Source
-# ────────────────────────────────────────────────────────────
-COPY . /app
+# Copy entire project
+COPY . .
 
-# ────────────────────────────────────────────────────────────
-# Expose Port
-# ────────────────────────────────────────────────────────────
 EXPOSE 8000
 
-# ────────────────────────────────────────────────────────────
-# Start FastAPI
-# ────────────────────────────────────────────────────────────
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
